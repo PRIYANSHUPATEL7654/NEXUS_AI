@@ -1,0 +1,9 @@
+# this are the things that will never get uploaded to github
+# Don't upload your entire Python virtual environment as other developers can recreate it using the project dependency files.
+.venv/ 
+# Python generates cache files automatically and we do not need them on github
+__pycache__/
+# Compiled Python files generated automatically
+*.pyc
+# contains secrets like passwords which should not be on github 
+.env
