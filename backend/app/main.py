@@ -1,21 +1,26 @@
-from fastapi import FastAPI # importing FastAPI from the library.
-from pydantic import BaseModel # we use pydantic to validate everything
+from fastapi import FastAPI
 
-app = FastAPI( # represents nexus backend application
-    title="Nexus AI API",
-    description="Backend API for the Nexus AI ecosystem",
+from app.database import Base, engine
+from app.routers import users
+
+
+Base.metadata.create_all(bind=engine)
+
+
+app = FastAPI(
+    title="NEXUS AI API",
+    description="Backend API for the NEXUS AI ecosystem",
     version="0.1.0"
 )
 
-class UserProfile(BaseModel): # We're defining the expected structure of incoming data. It is called data model/schema
-    name: str
-    email: str
-    age: int
 
-@app.get("/") # this is called a decorator, when someone calls this request the below function is executed
-def root():
+app.include_router(users.router)
+
+
+@app.get("/")
+def read_root():
     return {
-        "message": "Nexus AI backend is running"
+        "message": "Welcome to NEXUS AI"
     }
 
 
@@ -23,18 +28,4 @@ def root():
 def health_check():
     return {
         "status": "healthy"
-    }
-
-@app.get("/users/{user_id}")
-def get_user(user_id: int):
-    return {
-        "user_id": user_id,
-        "name": "Test User"
-    }
-
-@app.post("/users")
-def create_user(user: UserProfile):
-    return {
-        "message": "User created successfully",
-        "user": user
     }
