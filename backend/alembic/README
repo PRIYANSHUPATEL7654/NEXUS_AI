@@ -1,0 +1,8 @@
+NEXUS AI database migration environment.
+
+Migration files belong in the versions directory and must be committed to Git.
+
+Database passwords and other secrets must never be written into migration files
+or alembic.ini. The active database connection is loaded through
+app.database.engine, which uses the existing backend environment configuration.
+

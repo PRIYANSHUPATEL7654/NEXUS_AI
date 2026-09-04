@@ -1,19 +1,11 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-    Query,
-    Response,
-    status
-)
-
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import User
-from app.schemas import UserCreate, UserResponse, UserUpdate
+from ..database import get_db
+from ..models import User
+from ..schemas import UserResponse, UserUpdate
+from ..security import get_current_active_user
 
 
 router = APIRouter(
@@ -22,81 +14,29 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED
-)
-def create_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-):
-    new_user = User(
-        name=user_data.name,
-        email=user_data.email,
-        age=user_data.age
-    )
-
-    try:
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
-    except IntegrityError:
-        db.rollback()
-
+def require_own_profile(
+    requested_user_id: int,
+    current_user: User
+) -> None:
+    if requested_user_id != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email already exists."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only access your own user profile"
         )
-
-    return new_user
-
-
-@router.get(
-    "",
-    response_model=list[UserResponse]
-)
-def get_users(
-    skip: int = Query(
-        default=0,
-        ge=0
-    ),
-    limit: int = Query(
-        default=10,
-        ge=1,
-        le=100
-    ),
-    db: Session = Depends(get_db)
-):
-    statement = (
-        select(User)
-        .offset(skip)
-        .limit(limit)
-    )
-
-    users = db.scalars(statement).all()
-
-    return users
 
 
 @router.get(
     "/{user_id}",
     response_model=UserResponse
 )
-def get_user(
+def read_user(
     user_id: int,
-    db: Session = Depends(get_db)
+    current_user: User = Depends(
+        get_current_active_user
+    )
 ):
-    user = db.get(User, user_id)
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
-
-    return user
+    require_own_profile(user_id, current_user)
+    return current_user
 
 
 @router.patch(
@@ -106,15 +46,12 @@ def get_user(
 def update_user(
     user_id: int,
     user_data: UserUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_active_user
+    )
 ):
-    user = db.get(User, user_id)
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
+    require_own_profile(user_id, current_user)
 
     update_data = user_data.model_dump(
         exclude_unset=True
@@ -123,31 +60,34 @@ def update_user(
     if not update_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide at least one field to update."
+            detail="Provide at least one field to update"
         )
 
     if any(value is None for value in update_data.values()):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Updated fields cannot be null."
+            detail="User fields cannot be null"
         )
 
+    if "email" in update_data:
+        update_data["email"] = str(
+            update_data["email"]
+        ).lower()
+
     for field, value in update_data.items():
-        setattr(user, field, value)
+        setattr(current_user, field, value)
 
     try:
         db.commit()
-        db.refresh(user)
-
+        db.refresh(current_user)
     except IntegrityError:
         db.rollback()
-
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email already exists."
+            detail="A user with this email already exists"
         )
 
-    return user
+    return current_user
 
 
 @router.delete(
@@ -156,17 +96,14 @@ def update_user(
 )
 def delete_user(
     user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_active_user
+    )
 ):
-    user = db.get(User, user_id)
+    require_own_profile(user_id, current_user)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
-
-    db.delete(user)
+    db.delete(current_user)
     db.commit()
 
     return Response(

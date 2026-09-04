@@ -1,4 +1,4 @@
-from sqlalchemy import String
+from sqlalchemy import Boolean, String, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -24,5 +24,17 @@ class User(Base):
     )
 
     age: Mapped[int] = mapped_column(
+        nullable=False
+    )
+
+    hashed_password: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default=false(),
         nullable=False
     )
