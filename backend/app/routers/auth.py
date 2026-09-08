@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import User
+from ..models import User, UserProfile
 from ..schemas import Token, UserRegister, UserResponse
 from ..security import (
     create_access_token,
@@ -51,7 +51,8 @@ def register_user(
         hashed_password=hash_password(
             user_data.password
         ),
-        is_active=True
+        is_active=True,
+        profile=UserProfile()
     )
 
     db.add(new_user)
