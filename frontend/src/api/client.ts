@@ -1,4 +1,4 @@
-import type { AskResponse, DailyBrief, Recommendation, User } from "../types";
+import type { AskResponse, DailyBrief, IntelligenceSearchResponse, Recommendation, User, UserProfile } from "../types";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers);
   if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -37,6 +37,33 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return response.json() as Promise<T>;
 }
 
+export async function download(path: string, token: string, fallbackName: string) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    let message = `Download failed with status ${response.status}`;
+    try {
+      const body = await response.json();
+      message = typeof body.detail === "string" ? body.detail : message;
+    } catch {
+      // Keep the status-based message when the response is not JSON.
+    }
+    throw new ApiError(message, response.status);
+  }
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const filename = match?.[1] || fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   health: () => request<{ status: string }>("/health"),
   login: async (email: string, password: string) => {
@@ -55,6 +82,11 @@ export const api = {
     request<{ generated_for: string; recommendations: Recommendation[] }>("/intelligence/recommendations", {}, token),
   ask: (token: string, message: string) =>
     request<AskResponse>("/intelligence/ask", { method: "POST", body: JSON.stringify({ message }) }, token),
+  search: (token: string, query: string, limit = 30) =>
+    request<IntelligenceSearchResponse>(`/intelligence/search?q=${encodeURIComponent(query)}&limit=${limit}`, {}, token),
+  profile: (token: string) => request<UserProfile>("/profile/me", {}, token),
+  updateProfile: (token: string, payload: Partial<Omit<UserProfile, "id" | "user_id" | "created_at" | "updated_at">>) =>
+    request<UserProfile>("/profile/me", { method: "PATCH", body: JSON.stringify(payload) }, token),
 };
 
 export { API_BASE_URL };

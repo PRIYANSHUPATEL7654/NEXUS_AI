@@ -381,23 +381,37 @@ def run_tool(db: Session, user: User, tool_name: str, parameters: dict[str, Any]
     raise KeyError("Unknown or disabled Intelligence tool")
 
 
-def ask_nexus(db: Session, user: User, message: str) -> tuple[str, str, list[str], dict[str, Any]]:
+def infer_intent(message: str) -> str:
+    """Classify a supported Ask Nexus intent without accessing user data."""
     lowered = message.lower()
+    if any(word in lowered for word in ["today", "focus", "daily", "brief"]):
+        return "daily_brief"
+    if any(word in lowered for word in ["spend", "spent", "expense", "money", "income"]):
+        return "money_summary"
+    if any(word in lowered for word in ["learn", "study", "revision", "skill", "quiz"]):
+        return "learning_progress"
+    if any(word in lowered for word in ["work", "task", "deadline", "project", "pending"]):
+        return "pending_work"
+    return "search"
+
+
+def ask_nexus(db: Session, user: User, message: str) -> tuple[str, str, list[str], dict[str, Any]]:
+    intent = infer_intent(message)
     timezone, _ = _safe_timezone(user)
     local_date = datetime.now(timezone).date()
-    if any(word in lowered for word in ["today", "focus", "daily", "brief"]):
+    if intent == "daily_brief":
         data = daily_brief(db, user)
         return "daily_brief", data["summary"], ["daily_brief"], data
-    if any(word in lowered for word in ["spend", "spent", "expense", "money", "income"]):
+    if intent == "money_summary":
         currency = user.profile.preferred_currency if user.profile else "INR"
         data = money_summary(db, user.id, local_date, currency)
         answer = f"This month you recorded {currency} {data['income']} income and {currency} {data['expenses']} expenses, for a net of {currency} {data['net']}."
         return "money_summary", answer, ["get_money_summary"], data
-    if any(word in lowered for word in ["learn", "study", "revision", "skill", "quiz"]):
+    if intent == "learning_progress":
         data = revision_queue(db, user.id, 5)
         answer = f"I found {len(data['items'])} learning topic(s) that need attention."
         return "learning_progress", answer, ["get_revision_queue"], data
-    if any(word in lowered for word in ["work", "task", "deadline", "project", "pending"]):
+    if intent == "pending_work":
         data = pending_tasks(db, user.id, local_date, 10)
         answer = f"You have {len(data['items'])} pending task(s) in the current result."
         return "pending_work", answer, ["get_pending_tasks"], data

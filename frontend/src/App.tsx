@@ -3,14 +3,19 @@ import { useEffect, useState } from "react";
 import { useAuth } from "./auth/AuthContext";
 import { Shell, type RouteKey } from "./components/Shell";
 import { DashboardPage } from "./pages/DashboardPage";
+import { KnowledgePage } from "./pages/KnowledgePage";
+import { LearnPage } from "./pages/LearnPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MoneyPage } from "./pages/MoneyPage";
 import { ModulePage } from "./pages/ModulePage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { SearchPage } from "./pages/SearchPage";
+import { WorkPage } from "./pages/WorkPage";
 
-const validRoutes = new Set<RouteKey>(["dashboard", "knowledge", "learn", "money", "work", "intelligence", "profile"]);
+const validRoutes = new Set<RouteKey>(["dashboard", "knowledge", "learn", "money", "work", "intelligence", "search", "profile"]);
 
 function readRoute(): RouteKey {
-  const value = window.location.hash.replace(/^#\//, "") as RouteKey;
+  const value = window.location.hash.replace(/^#\//, "").split("?")[0] as RouteKey;
   return validRoutes.has(value) ? value : "dashboard";
 }
 
@@ -30,7 +35,12 @@ export default function App() {
 
   let page = <DashboardPage />;
   if (route === "profile") page = <ProfilePage />;
-  else if (route !== "dashboard") page = <ModulePage module={route} />;
+  else if (route === "search") page = <SearchPage />;
+  else if (route === "knowledge") page = <KnowledgePage />;
+  else if (route === "learn") page = <LearnPage />;
+  else if (route === "money") page = <MoneyPage />;
+  else if (route === "work") page = <WorkPage />;
+  else if (route === "intelligence") page = <ModulePage module="intelligence" />;
 
   return <Shell route={route}>{page}</Shell>;
 }

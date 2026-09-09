@@ -74,6 +74,14 @@ export function DashboardPage() {
         ))}
       </section>
 
+      <section className="quick-actions" aria-label="Quick actions">
+        <a href="#/knowledge"><span>K</span><div><strong>Add a document</strong><small>Knowledge upload</small></div></a>
+        <a href="#/money"><span>M</span><div><strong>Add a transaction</strong><small>Manual or import</small></div></a>
+        <a href="#/work"><span>W</span><div><strong>Add a task</strong><small>Choose a project</small></div></a>
+        <a href="#/learn"><span>L</span><div><strong>Continue learning</strong><small>Goals and quizzes</small></div></a>
+        <a href="#/search"><span>⌕</span><div><strong>Search everything</strong><small>All owned records</small></div></a>
+      </section>
+
       <section className="dashboard-columns">
         <div className="panel recommendations-panel">
           <div className="panel-heading"><div><p className="eyebrow">EXPLAINABLE</p><h2>Recommended next actions</h2></div><span>{recommendations.length}</span></div>

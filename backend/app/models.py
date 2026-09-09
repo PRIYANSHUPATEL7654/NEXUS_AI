@@ -40,6 +40,7 @@ class User(Base):
     work_plan_imports: Mapped[list["WorkPlanImport"]] = relationship(back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     work_task_drafts: Mapped[list["WorkTaskDraft"]] = relationship(back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
     intelligence_runs: Mapped[list["IntelligenceRun"]] = relationship(back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
+    notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class UserProfile(Base):
@@ -472,3 +473,33 @@ class IntelligenceRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user: Mapped[User] = relationship(back_populates="intelligence_runs")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    __table_args__ = (
+        CheckConstraint(
+            "module IN ('knowledge', 'learn', 'money', 'work', 'system')",
+            name="ck_notifications_module",
+        ),
+        CheckConstraint(
+            "severity IN ('info', 'success', 'warning', 'urgent')",
+            name="ck_notifications_severity",
+        ),
+        UniqueConstraint("user_id", "dedupe_key", name="uq_notifications_user_dedupe"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    module: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), default="info", server_default="info", nullable=False)
+    route: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false(), nullable=False, index=True)
+    dedupe_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="notifications")

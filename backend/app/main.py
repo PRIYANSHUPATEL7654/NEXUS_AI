@@ -3,13 +3,13 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, files, imports, intelligence, knowledge, learn, money, profile, users, work
+from app.routers import auth, files, imports, intelligence, knowledge, learn, money, notifications, profile, users, work
 
 
 app = FastAPI(
     title="NEXUS AI API",
     description="Backend API for the NEXUS AI ecosystem",
-    version="0.11.0",
+    version="0.12.0",
 )
 
 allowed_origins = [
@@ -39,6 +39,7 @@ app.include_router(learn.router)
 app.include_router(money.router)
 app.include_router(work.router)
 app.include_router(intelligence.router)
+app.include_router(notifications.router)
 
 
 @app.get("/")

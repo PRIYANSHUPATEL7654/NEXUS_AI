@@ -1,0 +1,7 @@
+[
+  {"message": "What should I focus on today?", "intent": "daily_brief"},
+  {"message": "What did I spend this month?", "intent": "money_summary"},
+  {"message": "Which skill should I study?", "intent": "learning_progress"},
+  {"message": "What work is pending?", "intent": "pending_work"},
+  {"message": "Find the Atlas record", "intent": "search"}
+]

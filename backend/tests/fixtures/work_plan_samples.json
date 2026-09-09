@@ -1,0 +1,7 @@
+[
+  {
+    "name": "project_with_tasks",
+    "text": "NEXUS release\n- Implement notification API by 12 September 2026\n- Test frontend search\n- Document release checks",
+    "expected": {"title": "NEXUS release", "task_count": 3, "first_due_date": "2026-09-12"}
+  }
+]
