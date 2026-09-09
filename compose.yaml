@@ -1,0 +1,56 @@
+name: nexus-ai
+
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: nexus_ai
+      POSTGRES_USER: nexus_ai
+      POSTGRES_PASSWORD: ${NEXUS_DB_PASSWORD:?Set NEXUS_DB_PASSWORD in deploy/compose.env}
+    volumes:
+      - nexus_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus_ai -d nexus_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_NAME: nexus_ai
+      DB_USER: nexus_ai
+      DB_PASSWORD: ${NEXUS_DB_PASSWORD:?Set NEXUS_DB_PASSWORD in deploy/compose.env}
+      JWT_SECRET_KEY: ${NEXUS_JWT_SECRET:?Set NEXUS_JWT_SECRET in deploy/compose.env}
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+      RUN_MIGRATIONS: "true"
+      SQL_ECHO: "false"
+      UPLOAD_DIRECTORY: /app/storage/uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - nexus_uploads:/app/storage/uploads
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://127.0.0.1:8000
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  nexus_postgres_data:
+  nexus_uploads:

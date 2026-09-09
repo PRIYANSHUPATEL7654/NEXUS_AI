@@ -1,0 +1,110 @@
+name: NEXUS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend, PostgreSQL and migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: nexus_ci
+          POSTGRES_USER: nexus_ci
+          POSTGRES_PASSWORD: nexus_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexus_ci -d nexus_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: nexus_ci
+      DB_USER: nexus_ci
+      DB_PASSWORD: nexus_ci_password
+      TEST_DB_NAME: nexus_ci_test
+      JWT_SECRET_KEY: ci-only-secret-key-that-is-longer-than-32-characters
+      CORS_ORIGINS: http://localhost:5173
+      SQL_ECHO: "false"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.33"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install backend dependencies
+        run: uv sync --frozen
+      - name: Compile and lint Python source
+        run: |
+          uv run python -m compileall app tests alembic/versions
+          uv run python ../scripts/python_hygiene.py app tests alembic/versions
+      - name: Create disposable test database
+        run: uv run python tests/create_test_database.py
+      - name: Apply and compare migrations
+        run: |
+          uv run alembic upgrade head
+          uv run alembic current
+          uv run alembic check
+      - name: Run backend and ownership tests
+        run: uv run python -m unittest discover -s tests -v
+
+  frontend:
+    name: Frontend tests and production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Test frontend contracts and states
+        run: npm run test
+      - name: Type-check frontend
+        run: npm run typecheck
+      - name: Build frontend artifact
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://api.invalid.example
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-ai-frontend-dist
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  containers:
+    name: Container build gate
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build backend image
+        run: docker build --tag nexus-ai-backend:ci backend
+      - name: Build frontend image
+        run: docker build --tag nexus-ai-frontend:ci --build-arg VITE_API_BASE_URL=https://api.invalid.example frontend

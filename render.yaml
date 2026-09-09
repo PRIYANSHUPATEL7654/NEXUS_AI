@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: nexus-ai-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: LOG_LEVEL
+        value: info
+      - key: SQL_ECHO
+        value: "false"
+      - key: UPLOAD_DIRECTORY
+        value: /tmp/nexus-uploads
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "10"

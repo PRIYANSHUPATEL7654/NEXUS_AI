@@ -1,9 +1,25 @@
-# this are the things that will never get uploaded to github
-# Don't upload your entire Python virtual environment as other developers can recreate it using the project dependency files.
-.venv/ 
-# Python generates cache files automatically and we do not need them on github
-__pycache__/
-# Compiled Python files generated automatically
-*.pyc
-# contains secrets like passwords which should not be on github 
-.env
+# Local environments, generated output and private runtime data
+**/.venv/
+**/__pycache__/
+*.py[cod]
+**/node_modules/
+**/dist/
+**/.pytest_cache/
+**/.coverage
+
+# Real environment files and deployment secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+deploy/compose.env
+
+# User uploads and generated exports remain private
+backend/storage/uploads/
+backend/storage/exports/
+
+# Local editor/system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
