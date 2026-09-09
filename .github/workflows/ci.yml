@@ -58,7 +58,7 @@ jobs:
           uv run python -m compileall app tests alembic/versions
           uv run python ../scripts/python_hygiene.py app tests alembic/versions
       - name: Create disposable test database
-        run: uv run python tests/create_test_database.py
+        run: uv run python -m tests.create_test_database
       - name: Apply and compare migrations
         run: |
           uv run alembic upgrade head
