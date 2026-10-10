@@ -8,7 +8,6 @@ identity, file/import pipeline and ownership model.
 ## MVP checkpoint
 
 ```text
-Deadline: September 22, 2026
 API version: 0.12.0
 Alembic head: 20260912_12
 Primary client: responsive installable React PWA
@@ -110,7 +109,6 @@ files, financial exports, `node_modules`, `.venv` or build output. The GitHub
 repository is intended to remain private during development. Platform secrets
 belong only in the hosting provider or GitHub encrypted-secret interface.
 
-## License and portfolio status
+## portfolio status
 
-This repository is currently a private personal MVP and learning project. Add a
-license only after deciding what reuse rights should be granted.
+This repository is currently a private personal MVP and learning project.
